@@ -4,10 +4,10 @@ object Exoplanets {
 
   def main(args: Array[String]): Unit = {
 
-    val conf = new SparkConf().setAppName("WordCount")
+    val conf = new SparkConf().setAppName("ESIExoplanets")
       .setMaster("local[*]")
     val sc = new SparkContext(conf)
-    val inputfile = sc.textFile("src/data/exoplanets_confirmed.csv")
+    val inputfile = sc.textFile("hdfs:///tmp/exoplanets_confirmed.csv")
 
     // Read CSV file
     val rdd = inputfile.map(f=>{
@@ -38,7 +38,7 @@ object Exoplanets {
       (p(0),esi,p(68))
     }).filter(l => l._2 > 0.6)
 
-    esiPlanets.saveAsTextFile("./tmp/esi")
+    esiPlanets.saveAsTextFile("hdfs:///tmp/ESIExoplanets")
 
   }
 
