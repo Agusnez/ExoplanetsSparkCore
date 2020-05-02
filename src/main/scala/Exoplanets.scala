@@ -7,7 +7,7 @@ object Exoplanets {
     val conf = new SparkConf().setAppName("ESIExoplanets")
       .setMaster("local[*]")
     val sc = new SparkContext(conf)
-    val inputfile = sc.textFile("hdfs:///tmp/exoplanets_confirmed.csv")
+    val inputfile = sc.textFile("hdfs:///tmp/exoplanets_confirmed.csv") // hdfs:///tmp/ ./src/data/exoplanets_confirmed.csv
 
     // Read CSV file
     val rdd = inputfile.map(f=>{
@@ -17,12 +17,12 @@ object Exoplanets {
     // Clean the data by keeping the planets that have value on the columns that we chose
     // Also we keep in mind not to retrieve the header data of the dataset.
     val cleanRdd = rdd.filter(line => {
-      line(19) != "" && line(19) != "pl_radj" && line(32) != "pl_insol" && line(32) != "" && line(68) != "" && line(68) != "sy_dist"
+      line(19) != "" && line(19) != "pl_radj" && line(32) != "pl_insol" && line(32) != ""
     })
 
     // Mapping that performs the computation of the Earth Similarity Index (ESI)
     // Planet name , ESI
-    val esiPlanets = cleanRdd.map(p => {
+    var esiPlanets = cleanRdd.map(p => {
 
       val s = p(32).toDouble
       val se = 1.0
@@ -35,10 +35,14 @@ object Exoplanets {
           (scala.math.pow((s-se)/(s+se),2) + scala.math.pow((r-re)/(r+re),2))
       )
 
-      (p(0),esi,p(68))
+      (p(0),esi)
     }).filter(l => l._2 > 0.6)
 
-    esiPlanets.saveAsTextFile("hdfs:///tmp/ESIExoplanets")
+    val esiPlanetsReduced = esiPlanets.mapValues((_, 1))
+      .reduceByKey((x, y) => (x._1 + y._1, x._2 + y._2))
+      .mapValues{ case (sum, count) => (1.0 * sum) / count }
+
+    esiPlanetsReduced.saveAsTextFile("hdfs:///tmp/ESIExoplanetsAVG") // hdfs:///tmp/ESIExoplanets ./src/tmp/ESIExoplanets
 
   }
 
